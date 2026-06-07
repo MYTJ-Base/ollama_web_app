@@ -1,0 +1,240 @@
+"""
+=============================================================================
+PYTHON BACKEND - Web App with Ollama Integration
+=============================================================================
+
+This is a simple web server that:
+1. Runs on a specific PORT (localhost:5000)
+2. Exposes API endpoints (URLs your frontend can request)
+3. Handles HTTP requests from the frontend
+4. Communicates with Ollama running on its own port (localhost:11434)
+5. Returns JSON responses that the frontend displays
+
+KEY CONCEPTS EXPLAINED:
+- PORT: A virtual "door" on your computer (5000 for our app, 11434 for Ollama)
+- API: Application Programming Interface - rules for how apps communicate
+- ENDPOINT: A specific URL path on the API (e.g., /chat, /health)
+- REQUEST: Message sent FROM frontend TO backend (with data)
+- RESPONSE: Message sent FROM backend TO frontend (with results)
+- JSON: Standard format for sending structured data over the web
+=============================================================================
+"""
+
+from flask import Flask, request, jsonify
+import requests
+import json
+
+# ============================================================================
+# STEP 1: Create a Flask app instance
+# ============================================================================
+# Flask is a web framework that makes it easy to create web servers
+app = Flask(__name__)
+
+# ============================================================================
+# CONSTANTS - Important configuration values
+# ============================================================================
+
+# PORT where this Flask server will listen
+# Your browser will access this at: http://localhost:5000
+FLASK_PORT = 5000
+
+# Ollama's port (default when you run: ollama serve)
+# Ollama runs SEPARATELY and exposes an API on this port
+OLLAMA_PORT = 11434
+OLLAMA_HOST = f"http://localhost:{OLLAMA_PORT}"
+
+# The model name to use (must be installed in Ollama)
+# Run: ollama pull qwen to download it
+MODEL_NAME = "qwen"
+
+# ============================================================================
+# STEP 2: Define API ENDPOINTS
+# ============================================================================
+# An endpoint is a specific URL on your server that does something
+# When you visit these URLs, specific functions run
+
+@app.route("/", methods=["GET"])
+def home():
+    """
+    ENDPOINT: / (root or home)
+    HTTP METHOD: GET
+    PURPOSE: Serve the HTML frontend when user visits http://localhost:5000/
+    
+    Returns: The HTML page (static/index.html)
+    """
+    return open("static/index.html", "r").read()
+
+
+@app.route("/api/health", methods=["GET"])
+def health_check():
+    """
+    ENDPOINT: /api/health
+    HTTP METHOD: GET
+    PURPOSE: Check if backend is running and Ollama is available
+    
+    This is useful for debugging - you can test this in your browser:
+    http://localhost:5000/api/health
+    
+    Returns: JSON status information
+    """
+    response_data = {
+        "status": "Backend is running!",
+        "flask_port": FLASK_PORT,
+        "ollama_port": OLLAMA_PORT,
+        "model": MODEL_NAME
+    }
+    
+    # Try to check if Ollama is running
+    try:
+        ollama_response = requests.get(f"{OLLAMA_HOST}/api/tags")
+        if ollama_response.status_code == 200:
+            response_data["ollama_status"] = "Ollama is running ✓"
+            response_data["available_models"] = [m["name"] for m in ollama_response.json()["models"]]
+        else:
+            response_data["ollama_status"] = "Ollama is not responding"
+    except requests.exceptions.ConnectionError:
+        response_data["ollama_status"] = "ERROR: Cannot connect to Ollama on port 11434"
+        response_data["help"] = "Make sure Ollama is running: 'ollama serve' in another terminal"
+    
+    return jsonify(response_data)
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    """
+    ENDPOINT: /api/chat
+    HTTP METHOD: POST
+    PURPOSE: Send a message to Ollama's Qwen model and get a response
+    
+    How it works:
+    1. Frontend sends a REQUEST (POST) with a message in the body
+    2. This function receives the message
+    3. We send it to Ollama's API
+    4. Ollama processes it with the Qwen model
+    5. We return the response as JSON
+    
+    REQUEST FORMAT (what frontend sends):
+    {
+        "message": "What is Python?"
+    }
+    
+    RESPONSE FORMAT (what we send back):
+    {
+        "message": "Python is a programming language...",
+        "model": "qwen",
+        "status": "success"
+    }
+    """
+    
+    # STEP 1: Get the message from the REQUEST
+    # request.get_json() reads the body of the POST request as JSON
+    data = request.get_json()
+    
+    if not data or "message" not in data:
+        # Return an error if the message is missing
+        return jsonify({
+            "error": "Message is required",
+            "status": "failed"
+        }), 400  # 400 = Bad Request error code
+    
+    user_message = data["message"]
+    
+    # STEP 2: Create the request to send to Ollama
+    # Ollama has its own API running on port 11434
+    # We're making an HTTP request TO Ollama FROM our backend
+    ollama_endpoint = f"{OLLAMA_HOST}/api/generate"
+    
+    ollama_request_data = {
+        "model": MODEL_NAME,
+        "prompt": user_message,
+        "stream": False  # Don't stream - wait for full response
+    }
+    
+    try:
+        # STEP 3: Send the request to Ollama
+        # This is an HTTP POST request (just like the frontend sent to us)
+        ollama_response = requests.post(
+            ollama_endpoint,
+            json=ollama_request_data,
+            timeout=120  # Wait up to 120 seconds for response
+        )
+        
+        # STEP 4: Check if the request was successful
+        if ollama_response.status_code == 200:
+            response_json = ollama_response.json()
+            model_response = response_json.get("response", "No response from model")
+            
+            # STEP 5: Send response back to frontend
+            return jsonify({
+                "message": model_response,
+                "model": MODEL_NAME,
+                "status": "success",
+                "user_query": user_message
+            })
+        else:
+            return jsonify({
+                "error": f"Ollama returned status {ollama_response.status_code}",
+                "status": "failed"
+            }), 500  # 500 = Server Error
+    
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            "error": f"Cannot connect to Ollama on {OLLAMA_HOST}",
+            "help": "Start Ollama with: ollama serve",
+            "status": "failed"
+        }), 503  # 503 = Service Unavailable
+    
+    except requests.exceptions.Timeout:
+        return jsonify({
+            "error": "Ollama took too long to respond (120s timeout)",
+            "status": "failed"
+        }), 504  # 504 = Gateway Timeout
+    
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "status": "failed"
+        }), 500
+
+
+# ============================================================================
+# STEP 3: Error Handlers - Handle common errors gracefully
+# ============================================================================
+
+@app.route("/api/chat", methods=["OPTIONS"])
+def handle_options():
+    """
+    Handle CORS preflight requests (browser security feature)
+    """
+    return jsonify({}), 200
+
+
+# ============================================================================
+# STEP 4: Run the server
+# ============================================================================
+
+if __name__ == "__main__":
+    # Print helpful information
+    print("\n" + "="*70)
+    print("🚀 OLLAMA WEB APP BACKEND STARTING")
+    print("="*70)
+    print(f"\n✓ Backend running on: http://localhost:{FLASK_PORT}/")
+    print(f"✓ Ollama will communicate on: http://localhost:{OLLAMA_PORT}/")
+    print(f"✓ Using model: {MODEL_NAME}\n")
+    print("IMPORTANT ENDPOINTS:")
+    print(f"  - GET  http://localhost:{FLASK_PORT}/               (View the app)")
+    print(f"  - GET  http://localhost:{FLASK_PORT}/api/health    (Check status)")
+    print(f"  - POST http://localhost:{FLASK_PORT}/api/chat      (Send messages)")
+    print("\nBEFORE RUNNING:")
+    print("  1. Install dependencies: pip install flask requests")
+    print("  2. Start Ollama: ollama serve (in another terminal)")
+    print("  3. Install model: ollama pull qwen")
+    print("\n" + "="*70 + "\n")
+    
+    # Start the Flask server
+    # debug=True means the server reloads when you change the code
+    app.run(
+        host="localhost",  # Only accessible from this computer
+        port=FLASK_PORT,
+        debug=True  # Auto-reload on code changes
+    )

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Qwen Chat - Web App Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 700px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 15px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        #chatBox {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .bot-message {
+            background: #e8eaf6;
+            color: #333;
+            margin-right: auto;
+        }
+
+        .message-label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #667eea;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            background: #ffebee;
+            border-left-color: #d32f2f;
+            color: #d32f2f;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .status-badge.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .status-badge.error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .status-badge.loading {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+
+        .tech-info {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER: Title and introduction -->
+        <header>
+            <h1>🤖 Ollama Qwen Chat</h1>
+            <p>A self-explanatory web app demonstrating ports, APIs, and HTTP requests</p>
+        </header>
+
+        <!-- INFO BOX: Explain what's happening -->
+        <div class="info-box">
+            <strong>📚 How this works:</strong><br>
+            Your message → <strong>Frontend (JavaScript)</strong> → <strong>HTTP Request to Port 5000</strong> → 
+            <strong>Backend (Python)</strong> → <strong>HTTP Request to Port 11434</strong> → 
+            <strong>Ollama + Qwen Model</strong> → Response flows back
+        </div>
+
+        <!-- CHAT BOX: Display conversation -->
+        <div id="chatBox"></div>
+
+        <!-- INPUT AREA: Send messages -->
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Ask me anything..." 
+                autocomplete="off"
+            />
+            <button id="sendButton" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        /*
+        =============================================================================
+        FRONTEND - JavaScript (Browser-side code)
+        =============================================================================
+        
+        This JavaScript file:
+        1. Listens for user input
+        2. Creates HTTP requests to the backend
+        3. Displays responses
+        4. Explains what's happening at each step
+        
+        KEY CONCEPTS:
+        - fetch(): Sends HTTP requests from browser to server
+        - JSON: Data format for requests/responses
+        - async/await: Wait for responses before continuing
+        - PORT 5000: Where our Python backend listens
+        - PORT 11434: Where Ollama backend listens
+        =============================================================================
+        */
+
+        // HTML elements we'll interact with
+        const chatBox = document.getElementById('chatBox');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // =====================================================================
+        // FUNCTION: Check backend health
+        // =====================================================================
+        async function checkHealth() {
+            /*
+            ENDPOINT: GET /api/health
+            PURPOSE: Verify that:
+            - Python backend is running
+            - Ollama is running
+            - Model is available
+            
+            This helps us debug connection issues
+            */
+            try {
+                // Make a GET request to the health endpoint
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                console.log('Backend Status:', data);
+                
+                if (data.ollama_status === 'Ollama is running ✓') {
+                    addSystemMessage('✅ All systems ready! Ollama is running.');
+                } else {
+                    addSystemMessage('❌ ' + data.ollama_status, true);
+                }
+            } catch (error) {
+                addSystemMessage('❌ Cannot reach backend on port 5000', true);
+                console.error('Health check failed:', error);
+            }
+        }
+
+        // =====================================================================
+        // FUNCTION: Send a message to the Qwen model
+        // =====================================================================
+        async function sendMessage() {
+            /*
+            FLOW:
+            1. Get the message from the input field
+            2. Display it as a user message
+            3. Create a JSON object with the message
+            4. Send it as a POST request to /api/chat endpoint
+            5. Backend receives it, sends to Ollama
+            6. Display the response
+            */
+            
+            const message = messageInput.value.trim();
+            
+            // Validate input
+            if (!message) {
+                alert('Please type a message');
+                return;
+            }
+
+            // STEP 1: Clear input and disable button
+            messageInput.value = '';
+            sendButton.disabled = true;
+
+            // STEP 2: Display user's message
+            addMessage(message, 'user');
+
+            // STEP 3: Show loading indicator
+            const loadingId = addMessage('Thinking...', 'bot', true);
+
+            try {
+                // STEP 4: Prepare the request
+                /*
+                ENDPOINT: POST /api/chat
+                METHOD: POST (we're SENDING data, not just requesting it)
+                BODY: JSON object with the user message
+                */
+                const requestBody = {
+                    message: message
+                };
+
+                console.log('📤 Sending request to backend:');
+                console.log('   URL: http://localhost:5000/api/chat');
+                console.log('   Method: POST');
+                console.log('   Data:', requestBody);
+
+                // STEP 5: Make the fetch request
+                const response = await fetch('/api/chat', {
+                    method: 'POST',  // POST = sending data
+                    headers: {
+                        'Content-Type': 'application/json'  // We're sending JSON
+                    },
+                    body: JSON.stringify(requestBody)  // Convert object to JSON string
+                });
+
+                console.log('📥 Response from backend:');
+                console.log('   Status:', response.status);
+
+                // STEP 6: Parse the response
+                const data = await response.json();
+
+                // STEP 7: Remove loading message and display response
+                chatBox.removeChild(document.getElementById(loadingId));
+
+                if (response.ok && data.status === 'success') {
+                    addMessage(data.message, 'bot');
+                    console.log('✅ Message received successfully');
+                } else {
+                    addMessage('❌ Error: ' + (data.error || 'Unknown error'), 'bot', false, true);
+                    console.error('❌ Error response:', data);
+                }
+
+            } catch (error) {
+                // Handle network errors
+                chatBox.removeChild(document.getElementById(loadingId));
+                addMessage('❌ Network Error: ' + error.message, 'bot', false, true);
+                console.error('❌ Fetch error:', error);
+            } finally {
+                // STEP 8: Re-enable send button
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // =====================================================================
+        // FUNCTION: Add a message to the chat
+        // =====================================================================
+        function addMessage(text, sender, isLoading = false, isError = false) {
+            /*
+            sender: 'user' or 'bot'
+            isLoading: Show loading spinner
+            isError: Style as error message
+            */
+            const messageDiv = document.createElement('div');
+            const messageId = 'msg-' + Date.now();
+            messageDiv.id = messageId;
+            messageDiv.className = `message ${sender}-message ${isError ? 'error' : ''}`;
+
+            let content = '';
+            if (isLoading) {
+                content = `
+                    <div class="loading">
+                        <span class="loading-spinner"></span>
+                        ${text}
+                    </div>
+                `;
+            } else {
+                content = `
+                    <div class="message-label">${sender === 'user' ? '👤 You' : '🤖 Qwen (AI)'}</div>
+                    <div>${text}</div>
+                    ${!isError ? `<div class="tech-info">Response from port ${sender === 'user' ? '5000 (backend)' : '11434 (Ollama)'}</div>` : ''}
+                `;
+            }
+
+            messageDiv.innerHTML = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;  // Auto-scroll to bottom
+
+            return messageId;
+        }
+
+        // =====================================================================
+        // FUNCTION: Add a system message
+        // =====================================================================
+        function addSystemMessage(text, isError = false) {
+            addMessage(text, 'bot', false, isError);
+        }
+
+        // =====================================================================
+        // EVENT LISTENERS: Listen for user interactions
+        // =====================================================================
+
+        // Send message when user presses Enter
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                sendMessage();
+            }
+        });
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            messageInput.focus();
+            checkHealth();
+            addSystemMessage('Welcome! I\'m connected to Qwen model via Ollama. Ask me anything!');
+        });
+    </script>
+</body>
+</html>
