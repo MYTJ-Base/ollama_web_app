@@ -90,7 +90,7 @@ Step 5: BACKEND SENDS TO OLLAMA
 │ Content-Type: application/json                 │
 │                                                │
 │ {                                              │
-│   "model": "qwen",                             │
+│   "model": "qwen2.5:1.5b",                             │
 │   "prompt": "hello",                           │
 │   "stream": false                              │
 │ }                                              │
@@ -114,7 +114,7 @@ Step 7: OLLAMA SENDS RESPONSE TO BACKEND
 │                                                        │
 │ {                                                      │
 │   "response": "Hello! How can I help you today?",      │
-│   "model": "qwen",                                     │
+│   "model": "qwen2.5:1.5b",                                     │
 │   "created_at": "2024-06-07T18:00:00Z",              │
 │   "done": true                                         │
 │ }                                                      │
@@ -136,7 +136,7 @@ Step 9: BACKEND SENDS RESPONSE TO FRONTEND
 │                                                          │
 │ {                                                        │
 │   "message": "Hello! How can I help you today?",         │
-│   "model": "qwen",                                       │
+│   "model": "qwen2.5:1.5b",                                       │
 │   "status": "success",                                   │
 │   "user_query": "hello"                                  │
 │ }                                                        │
@@ -262,7 +262,7 @@ ollama_web_app/
 │                             Chat interface that users interact with
 │
 ├── requirements.txt          ← Python dependencies
-│                             pip install -r requirements.txt
+│                             python -m pip install -r requirements.txt
 │
 ├── start.sh                  ← Quick start script
 │                             bash start.sh

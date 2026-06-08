@@ -33,6 +33,7 @@ This project teaches you:
 ### Prerequisites
 
 1. **Python 3.8+** - [Download](https://www.python.org/downloads/)
+   - *Note: If using Python 3.14+, you must use Flask 3.1.0 or newer.*
 2. **Ollama** - [Download](https://ollama.ai)
 3. **Qwen Model** - Will download automatically
 
@@ -40,10 +41,14 @@ This project teaches you:
 
 ```bash
 cd ollama_web_app
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
 ### Step 2: Start Ollama (in a separate terminal)
+
+If `11434` is already in use by Ollama, you can skip this step because Ollama is already running.
 
 ```bash
 ollama serve
@@ -58,14 +63,15 @@ listening on 127.0.0.1:11434
 
 In another terminal:
 ```bash
-ollama pull qwen
+ollama pull qwen2.5:1.5b
 ```
 
-This downloads the Qwen model (~4GB). You only need to do this once.
+This downloads the Qwen model. You only need to do this once.
 
 ### Step 4: Start the Python Backend
 
 ```bash
+source .venv/bin/activate
 python backend.py
 ```
 
@@ -74,8 +80,8 @@ You should see:
 🚀 OLLAMA WEB APP BACKEND STARTING
 ========================================
 ✓ Backend running on: http://localhost:5000/
-✓ Ollama will communicate on: http://localhost:11434/
-✓ Using model: qwen
+✓ Ollama will communicate at: http://127.0.0.1:11434/
+✓ Using model: qwen2.5:1.5b
 
 IMPORTANT ENDPOINTS:
   - GET  http://localhost:5000/               (View the app)
@@ -151,8 +157,8 @@ Browser (Frontend)
 
 2. **Port Configuration**
    ```python
-   FLASK_PORT = 5000          # Our server
-   OLLAMA_HOST = "http://localhost:11434"  # Ollama server
+   FLASK_PORT = int(os.environ.get("FLASK_PORT", "5000"))
+   OLLAMA_BASE_URL = "http://127.0.0.1:11434"
    ```
 
 3. **Endpoints (API Routes)**
@@ -230,10 +236,11 @@ Response:
 {
   "status": "Backend is running!",
   "flask_port": 5000,
+  "ollama_url": "http://127.0.0.1:11434",
   "ollama_port": 11434,
-  "model": "qwen",
-  "ollama_status": "Ollama is running ✓",
-  "available_models": ["qwen:latest"]
+  "model": "qwen2.5:1.5b",
+  "ollama_status": "Ollama is running",
+  "available_models": ["qwen2.5:1.5b"]
 }
 ```
 
@@ -253,13 +260,47 @@ curl -X POST http://localhost:5000/api/chat \
 **Solution:**
 ```bash
 # Terminal 1: Start Ollama
-ollama serve
+OLLAMA_HOST=127.0.0.1:11434 ollama serve
 
 # Terminal 2: Pull Qwen model
-ollama pull qwen
+ollama pull qwen2.5:1.5b
 
 # Terminal 3: Run the app
+source .venv/bin/activate
 python backend.py
+```
+
+### "Port 11434 is already in use"
+
+Ollama's built-in default is `127.0.0.1:11434`. On many Linux systems, Ollama runs as a background system service automatically. If you see this error, it means **Ollama is already running and ready to use**. You do not need to run `ollama serve` manually.
+
+You can check if the service is active with:
+```bash
+systemctl is-active ollama
+```
+
+If you still want to use a different Ollama port:
+```bash
+OLLAMA_HOST=127.0.0.1:11435 ollama serve
+```
+
+The backend defaults to `127.0.0.1:11434`. To use another port, start both processes with the same value:
+```bash
+OLLAMA_HOST=127.0.0.1:11500 ollama serve
+OLLAMA_HOST=127.0.0.1:11500 python backend.py
+```
+
+If you start a new Ollama server on a new port, that server may have an empty model directory. Pull the model on that same port:
+```bash
+OLLAMA_HOST=127.0.0.1:11435 ollama pull qwen2.5:1.5b
+```
+
+### "AttributeError: module 'pkgutil' has no attribute 'get_loader'"
+
+**Solution:**
+This happens on Python 3.14+ when using an old version of Flask. Upgrade Flask to version 3.1 or newer:
+```bash
+pip install --upgrade flask werkzeug
 ```
 
 ### Browser shows "Cannot reach backend"

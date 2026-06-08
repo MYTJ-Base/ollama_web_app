@@ -29,6 +29,7 @@
 TERMINAL 1: Start Ollama
 ─────────────────────────
   ollama serve
+  If port 11434 is already busy with Ollama, it is already running.
 
 Then wait for: "listening on 127.0.0.1:11434"
 
@@ -36,7 +37,9 @@ Then wait for: "listening on 127.0.0.1:11434"
 TERMINAL 2: Start Backend
 ─────────────────────────
   cd ~/Desktop/Development/sandbox/ollama_web_app
-  pip install -r requirements.txt
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install -r requirements.txt
   python backend.py
 
 Then wait for: "Backend running on http://localhost:5000/"
@@ -70,7 +73,7 @@ BROWSER: Open the App
   Service 1: Ollama (Port 11434)
   ────────────────────────────
   What:     AI model server (runs Qwen model)
-  Started:  ollama serve
+  Started:  OLLAMA_HOST=127.0.0.1:11434 ollama serve
   Tests:    curl http://localhost:11434/api/tags
 
 
@@ -224,11 +227,11 @@ BROWSER: Open the App
 
   "Cannot connect to Ollama"
   → Make sure Terminal 1 has "ollama serve" running
-  → Run: ollama pull qwen  (if not already done)
+  → Run: ollama pull qwen2.5:1.5b  (if not already done)
 
 
   "Port 5000 already in use"
-  → Change FLASK_PORT = 8000 in backend.py
+  → Run the backend with: FLASK_PORT=8000 python backend.py
   → Or restart your computer
 
 
@@ -346,6 +349,7 @@ BROWSER: Open the App
                   Ready to start? Run these commands:
 
                       ollama serve
+                      source .venv/bin/activate
                       python backend.py
                       Open http://localhost:5000
 

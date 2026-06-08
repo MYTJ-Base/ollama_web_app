@@ -16,15 +16,18 @@ A **complete, self-explanatory web application** that teaches you about:
 
 ## Quick Start (3 Commands)
 
-**Terminal 1:**
+**Terminal 1 (Check Ollama):**
 ```bash
-ollama serve
+# Ollama is likely already running as a service
+systemctl is-active ollama
 ```
 
 **Terminal 2:**
 ```bash
 cd ~/Desktop/Development/sandbox/ollama_web_app
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 python backend.py
 ```
 
@@ -104,10 +107,10 @@ http://localhost:5000
 
 **"Cannot connect to Ollama"**
 - Make sure `ollama serve` is running in Terminal 1
-- Run `ollama pull qwen` first time
+- Run `ollama pull qwen2.5:1.5b` first time
 
 **"Port 5000 already in use"**
-- Edit `backend.py` line 24: `FLASK_PORT = 8000`
+- Run the backend with `FLASK_PORT=8000 python backend.py`
 
 **"Frontend won't load"**
 - Wait 5 seconds for backend to fully start

@@ -228,7 +228,7 @@
         <div class="info-box">
             <strong>📚 How this works:</strong><br>
             Your message → <strong>Frontend (JavaScript)</strong> → <strong>HTTP Request to Port 5000</strong> → 
-            <strong>Backend (Python)</strong> → <strong>HTTP Request to Port 11434</strong> → 
+            <strong>Backend (Python)</strong> → <strong id="ollamaPortLabel">HTTP Request to Ollama</strong> → 
             <strong>Ollama + Qwen Model</strong> → Response flows back
         </div>
 
@@ -272,6 +272,8 @@
         const chatBox = document.getElementById('chatBox');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
+        const ollamaPortLabel = document.getElementById('ollamaPortLabel');
+        let ollamaPort = 'configured Ollama port';
 
         // =====================================================================
         // FUNCTION: Check backend health
@@ -293,13 +295,18 @@
                 
                 console.log('Backend Status:', data);
                 
-                if (data.ollama_status === 'Ollama is running ✓') {
-                    addSystemMessage('✅ All systems ready! Ollama is running.');
+                if (data.ollama_port) {
+                    ollamaPort = data.ollama_port;
+                    ollamaPortLabel.textContent = `HTTP Request to Port ${ollamaPort}`;
+                }
+
+                if (data.ollama_status === 'Ollama is running') {
+                    addSystemMessage(`All systems ready! Ollama is running at ${data.ollama_url}.`);
                 } else {
-                    addSystemMessage('❌ ' + data.ollama_status, true);
+                    addSystemMessage(data.ollama_status, true);
                 }
             } catch (error) {
-                addSystemMessage('❌ Cannot reach backend on port 5000', true);
+                addSystemMessage('Cannot reach backend on port 5000', true);
                 console.error('Health check failed:', error);
             }
         }
@@ -374,14 +381,14 @@
                     addMessage(data.message, 'bot');
                     console.log('✅ Message received successfully');
                 } else {
-                    addMessage('❌ Error: ' + (data.error || 'Unknown error'), 'bot', false, true);
+                    addMessage('Error: ' + (data.error || 'Unknown error'), 'bot', false, true);
                     console.error('❌ Error response:', data);
                 }
 
             } catch (error) {
                 // Handle network errors
                 chatBox.removeChild(document.getElementById(loadingId));
-                addMessage('❌ Network Error: ' + error.message, 'bot', false, true);
+                addMessage('Network Error: ' + error.message, 'bot', false, true);
                 console.error('❌ Fetch error:', error);
             } finally {
                 // STEP 8: Re-enable send button
@@ -416,7 +423,7 @@
                 content = `
                     <div class="message-label">${sender === 'user' ? '👤 You' : '🤖 Qwen (AI)'}</div>
                     <div>${text}</div>
-                    ${!isError ? `<div class="tech-info">Response from port ${sender === 'user' ? '5000 (backend)' : '11434 (Ollama)'}</div>` : ''}
+                    ${!isError ? `<div class="tech-info">Response from port ${sender === 'user' ? '5000 (backend)' : `${ollamaPort} (Ollama)`}</div>` : ''}
                 `;
             }
 

@@ -1,2 +1,2 @@
-flask==2.3.0
+flask>=3.1,<4  # Required for Python 3.14+ compatibility
 requests==2.31.0

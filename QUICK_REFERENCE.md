@@ -20,12 +20,15 @@ Everything is heavily commented for learning!
 🚀 QUICK START (3 Steps)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Step 1: Terminal A - Start Ollama
-  $ ollama serve
+Step 1: Terminal A - Check Ollama
+  $ systemctl is-active ollama
+  (Ollama is usually already running as a system service)
 
 Step 2: Terminal B - Start Backend
   $ cd ollama_web_app
-  $ pip install -r requirements.txt
+  $ python3 -m venv .venv
+  $ source .venv/bin/activate
+  $ python -m pip install -r requirements.txt
   $ python backend.py
 
 Step 3: Browser - Open App
@@ -106,7 +109,7 @@ Port 5000:  Python Backend (Flask)
 Port 11434: Ollama Service
             - What: AI model backend
             - Access: http://localhost:11434
-            - Running: ollama serve
+            - Running: OLLAMA_HOST=127.0.0.1:11434 ollama serve
 
 Browser:    HTTP Client
             - What: Firefox, Chrome, Safari, etc.
@@ -208,11 +211,15 @@ fetch() API
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Setup:
-  pip install -r requirements.txt     Install Python packages
-  ollama pull qwen                    Download Qwen model
+  python3 -m venv .venv               Create local Python environment
+  source .venv/bin/activate           Use local Python environment
+  python -m pip install -r requirements.txt
+                                      Install Python packages
+  ollama pull qwen2.5:1.5b                    Download Qwen model
 
 Running:
-  ollama serve                        Start Ollama (Terminal 1)
+  ollama serve
+                                      Start Ollama (Terminal 1)
   python backend.py                   Start Flask (Terminal 2)
   bash start.sh                       Use quick start script
 
@@ -258,13 +265,22 @@ Problem: "Cannot connect to Ollama"
 Solution:
   1. Open new terminal
   2. Run: ollama serve
-  3. Run: ollama pull qwen
+  3. Run: ollama pull qwen2.5:1.5b
   4. Retry
+
+Problem: "Port 11434 already in use"
+Solution:
+  1. On this machine, that listener is already Ollama.
+  2. Check it: lsof -nP -iTCP:11434 -sTCP:LISTEN
+  3. Use the running service, or move Ollama with:
+     OLLAMA_HOST=127.0.0.1:11435 ollama serve
+  4. If you move ports, pull the model on that port:
+     OLLAMA_HOST=127.0.0.1:11435 ollama pull qwen2.5:1.5b
 
 Problem: "Port 5000 already in use"
 Solution:
   lsof -ti:5000 | xargs kill -9
-  Or change FLASK_PORT = 5001 in backend.py
+  Or run: FLASK_PORT=5001 python backend.py
 
 Problem: "Empty responses from Qwen"
 Solution:
